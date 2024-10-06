@@ -3,10 +3,14 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function SignupFormDemo() {
+
+  const { data : session } = useSession();
+
+  console.log(session);
 
   const router = useRouter();
 

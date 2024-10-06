@@ -1,11 +1,11 @@
-import NextAuth from "next-auth";
+import {NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { ConnectToDB } from "@/app/lib/database";
-import { User } from "@/app/lib/schema";
 // import jwt from 'jsonwebtoken'
 import bcrypt from "bcryptjs"
+import {User} from "@/lib/models/user.model";
 
-export default NextAuth({
+export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
@@ -32,27 +32,27 @@ export default NextAuth({
 
       try {
 
-
-
           await ConnectToDB();
 
-          const userExists = await User.findOne({ studentNo});
+          const user = await User.findOne({ studentNo});
 
  
-          if(!userExists){
+          if(!user){
             throw new Error("Invalid user");
           }
 
 
-          if (!userExists.password || !password) {
+          if (!user.password || !password) {
             throw new Error("Password is missing");
           }
-          const compareUser = await bcrypt.compare(password, userExists.password);
+          const compareUser = await bcrypt.compare(password, user.password);
 
-          if (!compareUser) {
-            throw new Error("Incorrect password");
-          }
-          return { id: userExists._id, studentNo: userExists.studentNo, name: userExists.name };
+          // if (!compareUser) {
+          //   throw new Error("Incorrect password");
+          // }
+
+          console.log(compareUser)
+          return user;
 
       } catch (error) {
           console.log(error);
@@ -61,9 +61,29 @@ export default NextAuth({
     },
     }),
   ],
+  callbacks : {
+    async jwt({token , user}){
+      if(user){
+         token.id = user._id?.toString();
+         token.isVerified = user.isVerified;
+         token.studentNo = user.studentNo;
+      }
+      return token
+    },
+    async session({session , token}){
+      if(token){
+        session.user._id = token._id as string;
+        session.user.studentNo = token.studentNo as string;
+        session.user.isVerified = token.isVerified as boolean
+      }
+      return session;
+    }
+    
+  },
   pages: {
     signIn: "/signin",
     error: "/auth/error",
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+

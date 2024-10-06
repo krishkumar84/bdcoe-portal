@@ -2,6 +2,7 @@
 // import SignupFormDemo from "./signin/page";
 
 import { useSession } from "next-auth/react";
+import EnhancedStudentDashboard from "./components/students/studentDashboard";
 
 export default function Home() {
 
@@ -10,8 +11,9 @@ export default function Home() {
   console.log(session,"wwedwedd")
 
   return (
-    <div className="flex items-center justify-center w-full h-screen bg-black">
+    <div className="">
       {/* <SignupFormDemo /> */}
+      <EnhancedStudentDashboard />
     </div>
   );
 }

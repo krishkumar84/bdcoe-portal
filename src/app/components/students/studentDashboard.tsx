@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { CalendarDays, User, CheckCircle, Book, BarChart2, Clock, AlertTriangle, Upload, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react"
 import { format, parseISO, isToday, differenceInMinutes } from "date-fns"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EditProfilePopup } from "./edit-student-profile"
+import axios from "axios"
+import { showAttendence } from "@/lib/action"
 
 const initialStudentData = {
     name: "John Doe",
@@ -74,8 +76,15 @@ export default function EnhancedStudentDashboard() {
   const [studentData, setStudentData] = useState(initialStudentData)
   const [currentPage, setCurrentPage] = useState(1)
   const [recordsPerPage, setRecordsPerPage] = useState(10)
+  const [attendanceData, setAttendanceData] = useState<{ date: string; status: string }[]>([])
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true) 
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return; 
     const timer = setInterval(() => {
       const now = new Date()
       setCurrentTime(now)
@@ -86,11 +95,44 @@ export default function EnhancedStudentDashboard() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [attendanceWindowEnd , isMounted])
 
-  const markAttendance = () => {
+  
+  const markAttendance = useCallback( async () => {
+    
+    await axios.post("/api/mark-attendance")
+    .then((data) => {
+      console.log(data)
+    })
+    .catch((err) => console.log(err))
     setAttendanceMarked(true)
-  }
+    
+  },[attendanceMarked])
+
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      const data = await showAttendence();
+      if (Array.isArray(data)) {
+        setAttendanceData(prevData => {
+          const newData = data.map(item => ({
+            date: item.date,
+            status: item.status
+          }));
+          const uniqueData = Array.from(new Set([...prevData, ...newData].map(item => item.date)))
+            .map(date => {
+              return [...prevData, ...newData].find(item => item.date === date);
+            })
+            .filter((item): item is { date: string; status: string } => item !== undefined);
+          return uniqueData;
+        });
+      } else {
+        console.error("Invalid data format", data);
+      }
+    };
+
+    fetchAttendance();
+  },[])
 
   const attendancePercentage = (studentData.attendedClasses / studentData.totalClasses) * 100
   const timeLeftInMinutes = Math.max(0, differenceInMinutes(attendanceWindowEnd, currentTime))
@@ -125,10 +167,18 @@ export default function EnhancedStudentDashboard() {
 
   const paginate = (pageNumber:any) => setCurrentPage(pageNumber)
 
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+  
+
   return (
     <div className="container mx-auto p-4 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">BDCOE Student Dashboard</h1>
-      
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+        BDCOE Student Dashboard
+      </h1>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -137,8 +187,16 @@ export default function EnhancedStudentDashboard() {
           <CardContent>
             <div className="flex flex-col items-center space-y-4">
               <Avatar className="h-32 w-32">
-                <AvatarImage src="/placeholder-avatar.jpg" alt={studentData.name} />
-                <AvatarFallback>{studentData.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                <AvatarImage
+                  src="/placeholder-avatar.jpg"
+                  alt={studentData.name}
+                />
+                <AvatarFallback>
+                  {studentData.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
               </Avatar>
               <div className="text-center">
                 <h2 className="text-2xl font-semibold">{studentData.name}</h2>
@@ -150,7 +208,10 @@ export default function EnhancedStudentDashboard() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <EditProfilePopup studentData={studentData} onSave={handleProfileUpdate} />
+            <EditProfilePopup
+              studentData={studentData}
+              onSave={handleProfileUpdate}
+            />
           </CardFooter>
         </Card>
 
@@ -165,14 +226,25 @@ export default function EnhancedStudentDashboard() {
             <TabsContent value="attendance">
               <CardHeader>
                 <CardTitle>Attendance Record</CardTitle>
-                <CardDescription>Your recent attendance history</CardDescription>
+                <CardDescription>
+                  Your recent attendance history
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {currentRecords.map((day, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-white rounded-lg shadow">
-                      <span className="font-medium">{format(parseISO(day.date), 'MMMM d, yyyy')}</span>
-                      <Badge variant={day.status === "Present" ? "default" : "destructive"}>
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-2 bg-white rounded-lg shadow"
+                    >
+                      <span className="font-medium">
+                        {formatDate(day.date)}
+                      </span>
+                      <Badge
+                        variant={
+                          day.status === "Present" ? "default" : "destructive"
+                        }
+                      >
                         {day.status}
                       </Badge>
                     </div>
@@ -208,8 +280,8 @@ export default function EnhancedStudentDashboard() {
                   <Select
                     value={recordsPerPage.toString()}
                     onValueChange={(value) => {
-                      setRecordsPerPage(Number(value))
-                      setCurrentPage(1)
+                      setRecordsPerPage(Number(value));
+                      setCurrentPage(1);
                     }}
                   >
                     <SelectTrigger className="w-[100px]">
@@ -228,34 +300,55 @@ export default function EnhancedStudentDashboard() {
             <TabsContent value="projects">
               <CardHeader>
                 <CardTitle>Projects</CardTitle>
-                <CardDescription>Manage your projects and track progress</CardDescription>
+                <CardDescription>
+                  Manage your projects and track progress
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="new" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="new">New Project</TabsTrigger>
                     <TabsTrigger value="ongoing">Ongoing Projects</TabsTrigger>
-                    <TabsTrigger value="completed">Completed Projects</TabsTrigger>
+                    <TabsTrigger value="completed">
+                      Completed Projects
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="new">
                     <div className="bg-white p-4 rounded-lg shadow mt-4">
-                      <h3 className="font-semibold text-lg mb-4">Submit New Project</h3>
-                      <form onSubmit={handleProjectSubmit} className="space-y-4">
+                      <h3 className="font-semibold text-lg mb-4">
+                        Submit New Project
+                      </h3>
+                      <form
+                        onSubmit={handleProjectSubmit}
+                        className="space-y-4"
+                      >
                         <div>
                           <Label htmlFor="projectName">Project Name</Label>
                           <Input
                             id="projectName"
                             value={newProject.name}
-                            onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                            onChange={(e) =>
+                              setNewProject({
+                                ...newProject,
+                                name: e.target.value,
+                              })
+                            }
                             required
                           />
                         </div>
                         <div>
-                          <Label htmlFor="projectDescription">Description</Label>
+                          <Label htmlFor="projectDescription">
+                            Description
+                          </Label>
                           <Textarea
                             id="projectDescription"
                             value={newProject.description}
-                            onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                            onChange={(e) =>
+                              setNewProject({
+                                ...newProject,
+                                description: e.target.value,
+                              })
+                            }
                             required
                           />
                         </div>
@@ -265,7 +358,12 @@ export default function EnhancedStudentDashboard() {
                             id="projectDueDate"
                             type="date"
                             value={newProject.dueDate}
-                            onChange={(e) => setNewProject({...newProject, dueDate: e.target.value})}
+                            onChange={(e) =>
+                              setNewProject({
+                                ...newProject,
+                                dueDate: e.target.value,
+                              })
+                            }
                             required
                           />
                         </div>
@@ -275,64 +373,100 @@ export default function EnhancedStudentDashboard() {
                   </TabsContent>
                   <TabsContent value="ongoing">
                     <div className="space-y-4 mt-4">
-                      {projects.filter(project => project.status !== "Completed").map((project) => (
-                        <Card key={project.id}>
-                          <CardHeader>
-                            <CardTitle>{project.name}</CardTitle>
-                            <CardDescription>{project.description}</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p><strong>Due Date:</strong> {project.dueDate}</p>
-                            <p><strong>Status:</strong> {project.status}</p>
-                            <div className="mt-4">
-                              <h4 className="font-semibold mb-2">Updates</h4>
-                              {project.updates.map((update, index) => (
-                                <div key={index} className="bg-gray-100 p-2 rounded mb-2">
-                                  <p className="text-sm text-gray-600">{update.date}</p>
-                                  <p>{update.comment}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                          <CardFooter>
-                            <form onSubmit={handleProjectUpdate} className="w-full">
-                              <div className="flex items-center space-x-2">
-                                <Input
-                                  value={newUpdate}
-                                  onChange={(e) => setNewUpdate(e.target.value)}
-                                  placeholder="Add an update..."
-                                />
-                                <Button type="submit" onClick={() => setSelectedProject(project)}>Update</Button>
+                      {projects
+                        .filter((project) => project.status !== "Completed")
+                        .map((project) => (
+                          <Card key={project.id}>
+                            <CardHeader>
+                              <CardTitle>{project.name}</CardTitle>
+                              <CardDescription>
+                                {project.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <p>
+                                <strong>Due Date:</strong> {project.dueDate}
+                              </p>
+                              <p>
+                                <strong>Status:</strong> {project.status}
+                              </p>
+                              <div className="mt-4">
+                                <h4 className="font-semibold mb-2">Updates</h4>
+                                {project.updates.map((update, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-gray-100 p-2 rounded mb-2"
+                                  >
+                                    <p className="text-sm text-gray-600">
+                                      {update.date}
+                                    </p>
+                                    <p>{update.comment}</p>
+                                  </div>
+                                ))}
                               </div>
-                            </form>
-                          </CardFooter>
-                        </Card>
-                      ))}
+                            </CardContent>
+                            <CardFooter>
+                              <form
+                                onSubmit={handleProjectUpdate}
+                                className="w-full"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <Input
+                                    value={newUpdate}
+                                    onChange={(e) =>
+                                      setNewUpdate(e.target.value)
+                                    }
+                                    placeholder="Add an update..."
+                                  />
+                                  <Button
+                                    type="submit"
+                                    onClick={() => setSelectedProject(project)}
+                                  >
+                                    Update
+                                  </Button>
+                                </div>
+                              </form>
+                            </CardFooter>
+                          </Card>
+                        ))}
                     </div>
                   </TabsContent>
                   <TabsContent value="completed">
                     <div className="space-y-4 mt-4">
-                      {projects.filter(project => project.status === "Completed").map((project) => (
-                        <Card key={project.id}>
-                          <CardHeader>
-                            <CardTitle>{project.name}</CardTitle>
-                            <CardDescription>{project.description}</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <p><strong>Due Date:</strong> {project.dueDate}</p>
-                            <p><strong>Status:</strong> {project.status}</p>
-                            <div className="mt-4">
-                              <h4 className="font-semibold mb-2">Updates</h4>
-                              {project.updates.map((update, index) => (
-                                <div key={index} className="bg-gray-100 p-2 rounded mb-2">
-                                  <p className="text-sm text-gray-600">{update.date}</p>
-                                  <p>{update.comment}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                      {projects
+                        .filter((project) => project.status === "Completed")
+                        .map((project) => (
+                          <Card key={project.id}>
+                            <CardHeader>
+                              <CardTitle>{project.name}</CardTitle>
+                              <CardDescription>
+                                {project.description}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <p>
+                                <strong>Due Date:</strong> {project.dueDate}
+                              </p>
+                              <p>
+                                <strong>Status:</strong> {project.status}
+                              </p>
+                              <div className="mt-4">
+                                <h4 className="font-semibold mb-2">Updates</h4>
+                                {project.updates.map((update, index) => (
+                                  <div
+                                    key={index}
+                                    className="bg-gray-100 p-2 rounded mb-2"
+                                  >
+                                    <p className="text-sm text-gray-600">
+                                      {update.date}
+                                    </p>
+                                    <p>{update.comment}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -341,24 +475,34 @@ export default function EnhancedStudentDashboard() {
             <TabsContent value="stats">
               <CardHeader>
                 <CardTitle>Attendance Statistics</CardTitle>
-                <CardDescription>Your overall attendance performance</CardDescription>
+                <CardDescription>
+                  Your overall attendance performance
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Overall Attendance</span>
-                    <span className="text-sm font-medium">{attendancePercentage.toFixed(1)}%</span>
+                    <span className="text-sm font-medium">
+                      Overall Attendance
+                    </span>
+                    <span className="text-sm font-medium">
+                      {attendancePercentage.toFixed(1)}%
+                    </span>
                   </div>
                   <Progress value={attendancePercentage} className="w-full" />
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="bg-white p-4 rounded-lg shadow text-center">
                       <Book className="mx-auto h-6 w-6 text-blue-500" />
-                      <p className="mt-2 font-semibold">{studentData.totalClasses}</p>
+                      <p className="mt-2 font-semibold">
+                        {studentData.totalClasses}
+                      </p>
                       <p className="text-sm text-gray-500">Total Classes</p>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow text-center">
                       <CheckCircle className="mx-auto h-6 w-6 text-green-500" />
-                      <p className="mt-2 font-semibold">{studentData.attendedClasses}</p>
+                      <p className="mt-2 font-semibold">
+                        {studentData.attendedClasses}
+                      </p>
                       <p className="text-sm text-gray-500">Classes Attended</p>
                     </div>
                   </div>
@@ -372,8 +516,16 @@ export default function EnhancedStudentDashboard() {
           <CardHeader>
             <CardTitle>Mark Today's Attendance</CardTitle>
             <CardDescription>
-              {format(currentTime, 'MMMM d, yyyy')}
-            </CardDescription>
+        {isMounted && currentTime ? (
+          new Date(currentTime).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        ) : (
+          'Loading...' 
+        )}
+      </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center justify-between bg-white p-6 rounded-lg shadow">
@@ -381,7 +533,7 @@ export default function EnhancedStudentDashboard() {
                 <Clock className="h-8 w-8 text-blue-500" />
                 <div>
                   <p className="text-lg font-semibold">Current Time</p>
-                  <p className="text-2xl">{format(currentTime, 'HH:mm:ss')}</p>
+                  {isMounted ? <p className="text-2xl">{format(currentTime, "HH:mm:ss")}</p> : <p>Loading...</p>}
                 </div>
               </div>
               {isAttendanceWindowOpen ? (
@@ -392,11 +544,16 @@ export default function EnhancedStudentDashboard() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <Button onClick={markAttendance} size="lg" className="px-8 mb-2">
+                    <Button
+                      onClick={markAttendance}
+                      size="lg"
+                      className="px-8 mb-2"
+                    >
                       Mark Attendance
                     </Button>
                     <p className="text-sm text-gray-500">
-                      Time left: {timeLeftInMinutes} minute{timeLeftInMinutes !== 1 ? 's' : ''}
+                      Time left: {timeLeftInMinutes} minute
+                      {timeLeftInMinutes !== 1 ? "s" : ""}
                     </p>
                   </div>
                 )
@@ -419,13 +576,14 @@ export default function EnhancedStudentDashboard() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Important Notice</AlertTitle>
               <AlertDescription>
-                The attendance marking window is open for 10 minutes each day. Please ensure you mark your attendance within this timeframe.
-                If you miss the window, please contact your administrator.
+                The attendance marking window is open for 10 minutes each day.
+                Please ensure you mark your attendance within this timeframe. If
+                you miss the window, please contact your administrator.
               </AlertDescription>
             </Alert>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -5,7 +5,7 @@ const attendanceSchema = new Schema({
     date: { type: Date, required: true, unique: true }, // Date of attendance
     markedAt: { type: Date }, // Timestamp when the attendance was marked
     status: { type: String, enum: ['present', 'absent', 'flagged'], default: 'absent' },
-    verified: { type: Boolean, default: false }, // Manual verification status
+    verified: { type: Boolean, default: false },
     flagged: { type: Boolean, default: false }, // If the attendance is flagged
   });
   

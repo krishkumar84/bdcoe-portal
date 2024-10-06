@@ -7,10 +7,11 @@ import { authOptions } from "../auth/[...nextauth]/option"
 import { getServerSession } from "next-auth/next"
 
 export async function POST(req: NextApiRequest,res: NextApiResponse) {
-  await ConnectToDB();
+  try {
+    await ConnectToDB();
   // console.log(req)
   const session = await getServerSession(authOptions)
-  // console.log(session)
+  console.log(session)
   if (!session) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
@@ -29,7 +30,6 @@ export async function POST(req: NextApiRequest,res: NextApiResponse) {
     return NextResponse.json({ message: 'You can only mark attendance at 4:40 PM or within 5 minutes of it.' });
   }
 
-  // Check if attendance has already been marked today
   const existingAttendance = await Attendance.findOne({ userId, date: attendanceDate });
   if (existingAttendance) {
     return NextResponse.json({ message: 'Attendance already marked for today.' }, { status: 400 });
@@ -39,7 +39,14 @@ export async function POST(req: NextApiRequest,res: NextApiResponse) {
   const attendance = new Attendance({ userId, date: attendanceDate, markedAt: now, status: 'present' });
   await attendance.save();
 
+  console.log(attendance)
+
   return NextResponse.json({ message: 'Attendance marked successfully!' }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({
+      error
+    })
+  }
 }
 
 

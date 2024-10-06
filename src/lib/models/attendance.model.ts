@@ -1,7 +1,7 @@
 import  { Schema, model, models } from "mongoose";
 
 const attendanceSchema = new Schema({
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: String, ref: 'User', required: true },
     date: { type: Date, required: true, unique: true }, // Date of attendance
     markedAt: { type: Date }, // Timestamp when the attendance was marked
     status: { type: String, enum: ['present', 'absent', 'flagged'], default: 'absent' },

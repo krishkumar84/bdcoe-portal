@@ -15,14 +15,13 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    //  projects: [
-    //         {
-    //           title: { type: String, required: true },
-    //           link: { type: String, required: true }, // URL link for individual project submission
-    //           submissionDate: { type: Date, default: Date.now }
-    //         }
-    //       ]
-
+     projects: [
+            {
+              title: { type: String, required: true },
+              link: { type: String, required: true }, // URL link for individual project submission
+              submissionDate: { type: Date, default: Date.now }
+            }
+          ],
     role: {
       type: String,
       enum: ["admin", "user"],

@@ -45,13 +45,12 @@ export const authOptions: NextAuthOptions = {
           if (!user.password || !password) {
             throw new Error("Password is missing");
           }
-          const compareUser = await bcrypt.compare(password, user.password);
+          // const compareUser = await bcrypt.compare(password, user.password);
 
-          // if (!compareUser) {
-          //   throw new Error("Incorrect password");
-          // }
+          if(password != user.password){
+            throw new Error("Incorrect password");
+          }
 
-          console.log(compareUser)
           return user;
 
       } catch (error) {

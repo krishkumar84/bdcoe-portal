@@ -1,24 +1,26 @@
-import User from '@/lib/models/user.model';
+import {User} from '@/lib/models/user.model';
 import {ConnectToDB} from '@/lib/db';
-import bcrypt from 'bcrypt';
 import {NextResponse } from "next/server";
-import { NextApiRequest } from 'next';
 
-export async function POST(req:NextApiRequest) {
+export async function POST(req:Request) {
     await ConnectToDB();
-    const { email, password } = req.body;
+    const body = await req.json();
+    const {studentNo, password } = body;
 
-    // Check if the user already exists
-    const existingUser = await User.findOne({ email });
+    // console.log(studentNo, password);
+    // console.log(body);
+    // console.log("here")
+
+    if (!studentNo || !password) {
+      return NextResponse.json({ message: 'studentNo and password are required' }, { status: 400 });
+    }
+
+    const existingUser = await User.findOne({ studentNo });
     if (existingUser) {
       return NextResponse.json({ message: 'User already exists' }, { status: 400 });
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create a new user
-    const user = new User({ email, password: hashedPassword });
+    const user = new User({ studentNo, password});
     await user.save();
 
     return NextResponse.json({ message: 'User created successfully!' });

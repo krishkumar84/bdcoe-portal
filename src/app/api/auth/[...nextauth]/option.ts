@@ -1,8 +1,6 @@
 import {NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { ConnectToDB } from "@/app/lib/database";
-// import jwt from 'jsonwebtoken'
-import bcrypt from "bcryptjs"
+import { ConnectToDB } from "@/lib/db";
 import {User} from "@/lib/models/user.model";
 
 export const authOptions: NextAuthOptions = {

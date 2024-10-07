@@ -36,9 +36,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url)); // Or redirect to a not-authorized page
   }
 
+   if (url.pathname.startsWith("/signup")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/signin","/admin"],
+   matcher: ["/", "/signin","/admin","/signup"]
 };

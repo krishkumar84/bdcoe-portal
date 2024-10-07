@@ -9,7 +9,7 @@ const UserSchema = new mongoose.Schema(
     },
     Name: {
       type: String,
-      // required: true,
+       required: true,
     },
     password: {
       type: String,
@@ -27,6 +27,10 @@ const UserSchema = new mongoose.Schema(
       enum: ["admin", "user"],
       required: true,
       default: "user",
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

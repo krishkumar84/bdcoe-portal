@@ -1,12 +1,12 @@
 import Attendance from '@/lib/models/attendance.model';
 import {ConnectToDB} from '@/lib/db';
 import { getSession } from "next-auth/react"
-import {NextResponse } from "next/server";
+import {NextRequest, NextResponse } from "next/server";
 import { NextApiRequest,  NextApiResponse } from 'next';
 import { authOptions } from "../auth/[...nextauth]/option"
 import { getServerSession } from "next-auth/next"
 
-export async function POST(req: NextApiRequest,res: NextApiResponse) {
+export async function POST(req: NextRequest,res: NextResponse) {
   try {
     await ConnectToDB();
   // console.log(req)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -17,55 +17,42 @@ import {
 import { CalendarDays, Users, BarChart, Search, ChevronLeft, ChevronRight, UserCheck, UserX } from "lucide-react"
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { toast } from "sonner"
-import { StudentDetailsPopup } from "./students-details"
-
-// Mock data for demonstration
-const initialStudents = [
-    {
-      id: 1,
-      name: "Alice Johnson",
-      present: 15,
-      absent: 2,
-      total: 17,
-      project: {
-        name: "Web Development Project",
-        status: 75
-      },
-      comments: [
-        { id: 1, date: "2023-05-15", text: "Excellent progress on the frontend tasks." },
-        { id: 2, date: "2023-05-20", text: "Needs to improve on backend integration." }
-      ]
-    },
-    {
-      id: 2,
-      name: "Bob Smith",
-      present: 14,
-      absent: 3,
-      total: 17,
-      project: {
-        name: "Mobile App Development",
-        status: 60
-      },
-      comments: [
-        { id: 1, date: "2023-05-18", text: "Good understanding of React Native concepts." },
-        { id: 2, date: "2023-05-22", text: "Struggling with state management. Needs assistance." }
-      ]
-    },
-  ]
+import StartAttendance from "./start-attendance"
 
 export default function AttendanceDashboard() {
-  const [students, setStudents] = useState(initialStudents)
-  const [selectedStudent, setSelectedStudent] = useState<{ id: number; name: string; present: number; absent: number; total: number; project: { name: string; status: number }; comments: { id: number; date: string; text: string }[] } | null>(null)
+  const [apiData, setApiData] = useState<any>(null)
+  const [students, setStudents] = useState<any[]>([])
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null)
+  const [selectedStudentNo, setSelectedStudentNo] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [attendance, setAttendance] = useState(
-    students.reduce((acc, student) => ({ ...acc, [student.id]: false }), {})
-  )
-  const [isPopupOpen, setIsPopupOpen] = useState(false)
+  const [attendance, setAttendance] = useState<{[key: string]: boolean}>({})
+  const [activeTab, setActiveTab] = useState("overview")
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("/api/getAttendanceOfAllUser")
+        const data = await response.json()
+        setApiData(data)
+        setStudents(data.userAttendance)
+        setAttendance(data.userAttendance.reduce((acc: {[key: string]: boolean}, student: any) => {
+          acc[student._id] = false
+          return acc
+        }, {}))
+      } catch (error) {
+        console.error("Error fetching attendance data:", error)
+        toast.error("Failed to fetch attendance data")
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const itemsPerPage = 10
   const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase())
+    student.Name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / itemsPerPage))
   const paginatedStudents = filteredStudents.slice(
@@ -73,36 +60,36 @@ export default function AttendanceDashboard() {
     currentPage * itemsPerPage
   )
 
-  const totalStudents = students.length
-  const totalPresent = students.reduce((sum, student) => sum + student.present, 0)
-  const totalAbsent = students.reduce((sum, student) => sum + student.absent, 0)
-  const averageAttendance = totalStudents > 0 ? (totalPresent / (totalPresent + totalAbsent) * 100).toFixed(2) : 0
-
-  const handleAttendanceChange = (studentId:any) => {
-    // setAttendance((prev) => ({ ...acc, [studentId]: !prev[studentId] }))
+  const handleAttendanceChange = (studentId: string) => {
+    setAttendance(prev => ({ ...prev, [studentId]: !prev[studentId] }))
   }
 
-  const handleSubmitAttendance = () => {
-    // Here you would typically send the attendance data to your backend
-    console.log("Submitting attendance:", attendance)
-    // Update the students' attendance
-    // const updatedStudents = students.map(student => ({
-    //   ...student,
-    //   present: student.present + (attendance[student.id] ? 1 : 0),
-    //   absent: student.absent + (attendance[student.id] ? 0 : 1),
-    //   total: student.total + 1
-    // }))
-    // setStudents(updatedStudents)
-    // Reset attendance after submission
-    setAttendance(students.reduce((acc, student) => ({ ...acc, [student.id]: false }), {}))
-    toast(
-      "The attendance has been successfully recorded.",
-    )
+  const handleSubmitAttendance = async () => {
+    try {
+      const response = await fetch("/api/automaticMarkAbsent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attendance),
+      })
+      if (response.ok) {
+        setAttendance(students.reduce((acc, student) => ({ ...acc, [student._id]: false }), {}))
+        toast.success("Attendance has been successfully recorded.")
+      } else {
+        throw new Error("Failed to submit attendance")
+      }
+    } catch (error) {
+      console.error("Error submitting attendance:", error)
+      toast.error("Failed to submit attendance")
+    }
   }
 
-  const handleViewStats = (student:any) => {
-    setSelectedStudent(student)
-    setIsPopupOpen(true)
+  const handleViewStats = (student: any) => {
+    setSelectedStudentId(student._id)
+    setSelectedStudentName(student.Name)
+    setSelectedStudentNo(student.studentNo)
+    setActiveTab("statistics")
   }
 
   const AttendanceSummary = () => (
@@ -113,7 +100,7 @@ export default function AttendanceDashboard() {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalStudents}</div>
+          <div className="text-2xl font-bold">{apiData?.totalStudents || 0}</div>
         </CardContent>
       </Card>
       <Card>
@@ -122,7 +109,7 @@ export default function AttendanceDashboard() {
           <UserCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalPresent}</div>
+          <div className="text-2xl font-bold">{apiData?.presentToday || 0}</div>
         </CardContent>
       </Card>
       <Card>
@@ -131,7 +118,7 @@ export default function AttendanceDashboard() {
           <UserX className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{averageAttendance}%</div>
+          <div className="text-2xl font-bold">{apiData?.averageAttendanceRate || 0}%</div>
         </CardContent>
       </Card>
     </div>
@@ -151,11 +138,11 @@ export default function AttendanceDashboard() {
         </TableHeader>
         <TableBody>
           {paginatedStudents.map((student) => (
-            <TableRow key={student.id}>
-              <TableCell className="font-medium">{student.name}</TableCell>
-              <TableCell>{student.present}</TableCell>
-              <TableCell>{student.absent}</TableCell>
-              <TableCell>{((student.present / student.total) * 100).toFixed(2)}%</TableCell>
+            <TableRow key={student._id}>
+              <TableCell className="font-medium">{student.Name || 'N/A'}</TableCell>
+              <TableCell>{student.totalPresent}</TableCell>
+              <TableCell>{student.totalAbsent}</TableCell>
+              <TableCell>{student.attendanceRate}%</TableCell>
               <TableCell>
                 <Button variant="outline" size="sm" onClick={() => handleViewStats(student)}>View Stats</Button>
               </TableCell>
@@ -192,67 +179,71 @@ export default function AttendanceDashboard() {
   const ManualAttendance = () => (
     <div className="space-y-4">
       <Table>
-        <TableHeader>
+        {/* <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Present</TableHead>
           </TableRow>
-        </TableHeader>
-        <TableBody>
+        </TableHeader> */}
+        {/* <TableBody>
           {paginatedStudents.map((student) => (
-            <TableRow key={student.id}>
-              <TableCell className="font-medium">{student.name}</TableCell>
+            <TableRow key={student._id}>
+              <TableCell className="font-medium">{student.Name || 'N/A'}</TableCell>
               <TableCell>
                 <Checkbox
-                //   checked={attendance[student.id] || false}
-                  onCheckedChange={() => handleAttendanceChange(student.id)}
+                  checked={attendance[student._id] || false}
+                  onCheckedChange={() => handleAttendanceChange(student._id)}
                 />
               </TableCell>
             </TableRow>
           ))}
-        </TableBody>
+        </TableBody> */}
       </Table>
       <Button onClick={handleSubmitAttendance} className="w-full">
-        Submit Attendance
+        Mark Rest of the Students Absent
       </Button>
     </div>
   )
 
   const StudentStatistics = () => {
-    if (!selectedStudent) {
+    if (!selectedStudentId || !selectedStudentName) {
       return <p className="text-center text-gray-500">Select a student to view their statistics.</p>
     }
 
-    const attendanceData = [
-      { name: 'Present', value: selectedStudent.present },
-      { name: 'Absent', value: selectedStudent.absent },
-    ]
+    const selectedStudent = students.find(student => student._id === selectedStudentId)
 
-    const attendanceRate = ((selectedStudent.present / selectedStudent.total) * 100).toFixed(2)
+    if (!selectedStudent) {
+      return <p className="text-center text-gray-500">Student data not found.</p>
+    }
+
+    const attendanceData = [
+      { name: 'Present', value: selectedStudent.totalPresent },
+      { name: 'Absent', value: selectedStudent.totalAbsent },
+    ]
 
     return (
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>{selectedStudent.name}'s Attendance Statistics</CardTitle>
+            <CardTitle>{selectedStudentName}'s Attendance Statistics</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Classes</p>
-                <p className="text-2xl font-bold">{selectedStudent.total}</p>
+                <p className="text-2xl font-bold">{selectedStudent.totalPresent + selectedStudent.totalAbsent}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Attendance Rate</p>
-                <p className="text-2xl font-bold">{attendanceRate}%</p>
+                <p className="text-2xl font-bold">{selectedStudent.attendanceRate}%</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Present</p>
-                <p className="text-2xl font-bold">{selectedStudent.present}</p>
+                <p className="text-2xl font-bold">{selectedStudent.totalPresent}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Absent</p>
-                <p className="text-2xl font-bold">{selectedStudent.absent}</p>
+                <p className="text-2xl font-bold">{selectedStudent.totalAbsent}</p>
               </div>
             </div>
           </CardContent>
@@ -294,7 +285,8 @@ export default function AttendanceDashboard() {
         </div>
       </header>
       <AttendanceSummary />
-      <Tabs defaultValue="overview" className="space-y-4">
+      <StartAttendance />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">
             <Users className="mr-2 h-4 w-4" />
@@ -323,7 +315,7 @@ export default function AttendanceDashboard() {
         <TabsContent value="mark-attendance">
           <Card>
             <CardHeader>
-              <CardTitle>Mark Attendance</CardTitle>
+              <CardTitle>Mark All Absent</CardTitle>
               <CardDescription>Manually mark attendance for students</CardDescription>
             </CardHeader>
             <CardContent>
@@ -343,16 +335,6 @@ export default function AttendanceDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-      {selectedStudent && (
-        <StudentDetailsPopup
-          student={selectedStudent}
-          isOpen={isPopupOpen}
-          onClose={() => {
-            setIsPopupOpen(false)
-            setSelectedStudent(null)
-          }}
-        />
-      )}
     </div>
   )
 }

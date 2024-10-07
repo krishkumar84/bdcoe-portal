@@ -73,7 +73,7 @@ export default function EnhancedRegistrationForm() {
     <div className='bg-black flex justify-center items-center h-screen'>
         <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">Student Registration</CardTitle>
+        <CardTitle className="text-2xl font-bold text-center">Probation Student Registration</CardTitle>
         <CardDescription className="text-center">Create a new account to get started</CardDescription>
       </CardHeader>
       <CardContent>

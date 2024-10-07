@@ -11,9 +11,17 @@ export async function POST (req:NextRequest){
           return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
       
-        const adminRole = session.user.studentNo;
+        const adminRole = session.user.role;
+
+        if(adminRole === 'user'){
+            return NextResponse.json ( {
+                error : "Invalid Authorization"
+            })
+        }
 
         
+
+
     } catch (error) {
         
     }

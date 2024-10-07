@@ -13,7 +13,7 @@ export async function POST(req:NextApiRequest) {
     }
 
     const { date } = req.body;
-    const userId = session.user.id;
+    const userId = session.user._id;
     try{
     const attendance = await Attendance.findOneAndUpdate(
         { userId, date },

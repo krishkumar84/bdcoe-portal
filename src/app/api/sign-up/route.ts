@@ -4,7 +4,7 @@ import {NextResponse } from "next/server";
 
 
 const students = [
-  { name: 'Aakash Saini', studentNo: '2310209', email: 'aakash2310219@akgec.ac.in' },
+  { name: 'Aakash Saini', studentNo: '2310219', email: 'aakash2310219@akgec.ac.in' },
   { name: 'Abhay Agrawal', studentNo: '2313072', email: 'abhayag41@gmail.com' },
   { name: 'Abhishek Rajdhar Dubey', studentNo: '2311022', email: 'abhishek2311022@akgec.ac.in' },
   { name: 'Aman Singh', studentNo: '2311048', email: 'aman2311048@akgec.ac.in' },
@@ -47,6 +47,7 @@ const students = [
   { name: 'Vinayak Gupta', studentNo: '23154096', email: 'vinayak23154096@akgec.ac.in' },
   { name: 'Yatharth Shukla', studentNo: '23164020', email: 'yatharth23164020@akgec.ac.in' }
 ]
+
 export async function POST(req:Request) {
     try {
       await ConnectToDB();

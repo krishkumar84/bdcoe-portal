@@ -13,62 +13,55 @@ export async function POST(req: NextRequest) {
     }
 
     const adminRole = session.user.role;
-
     const userId = session.user.studentNo;
 
     console.log(userId);
 
-    if (adminRole == "user") {
+    if (adminRole === "user") {
+      console.log("Invalid Authorization");
       return NextResponse.json({
         error: "Invalid Authorization",
       });
     }
 
-    const body = await req.json();
-
-    const { number } = body;
-
-    console.log(number)
-
     await ConnectToDB();
 
     const saveStartAttendance = await FreezeAttendance.findOne({ userId });
 
-    if (saveStartAttendance.windowOpen == true) {
-      return NextResponse.json({
-        error: "Attendance is already started",
-      });
-    }
-
     if (saveStartAttendance) {
+      if (saveStartAttendance.windowOpen === true) {
+        return NextResponse.json({
+          error: "Attendance is already started",
+        });
+      }
+
       const updateAttendance = await FreezeAttendance.findOneAndUpdate(
         { userId },
-        { $set: { windowOpen: true, time: number } },
-        { new: true, upsert: true }
+        { $set: { windowOpen: true } },
+        { new: true }
       );
 
-      console.log(updateAttendance);
+      console.log(updateAttendance, "update");
 
       return NextResponse.json({
         updateAttendance,
       });
-
     } else {
       const createAttendance = await FreezeAttendance.create({
         userId,
         windowOpen: true,
-        time: number,
       });
 
-      console.log(createAttendance);
+      console.log(createAttendance, "create");
 
       return NextResponse.json({
         createAttendance,
       });
     }
   } catch (error) {
+    console.error(error);
     return NextResponse.json({
-      error: "failed to start attendance",
+      error: "Failed to start attendance",
     });
   }
 }

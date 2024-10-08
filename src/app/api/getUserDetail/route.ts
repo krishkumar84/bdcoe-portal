@@ -13,7 +13,7 @@ export async function GET(request:Request) {
   }
 
   try {
-    // Fetch attendance records for the user
+    // Fetch attendance records for the userx
     const attendanceRecords = await Attendance.find({ userId }).lean();
 
     if (!attendanceRecords.length) {

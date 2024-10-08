@@ -18,6 +18,7 @@ import { CalendarDays, Users, BarChart, Search, ChevronLeft, ChevronRight, UserC
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { toast } from "sonner"
 import StartAttendance from "./start-attendance"
+import FreezeAttendance from "./freeze-attendance"
 
 export default function AttendanceDashboard() {
   const [apiData, setApiData] = useState<any>(null)
@@ -285,7 +286,10 @@ export default function AttendanceDashboard() {
         </div>
       </header>
       <AttendanceSummary />
+      <div className="flex md:flex-row flex-col items-center justify-center gap-12">
       <StartAttendance />
+      <FreezeAttendance />
+      </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">

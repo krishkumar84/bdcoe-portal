@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/option"
 import { getServerSession } from "next-auth"
 import Attendance from "./models/attendance.model"
 import { ConnectToDB } from "./db"
+import { User } from "./models/user.model"
 
 export const showAttendence = async () => {
 
@@ -28,3 +29,19 @@ export const showAttendence = async () => {
     return plainData;
 
 }
+
+export const showUserDetail = async ({ studentNo }: { studentNo: string }) => {
+  try {
+    await ConnectToDB();
+
+    const userDetail = await User.findOne({ studentNo })
+
+    if (!userDetail) {
+      return { message: 'User not found', status: 404 };
+    }
+
+    return { userDetail, status: 200 }; 
+  } catch (error) {
+    return { error: 'Internal Server Error', status: 500 };
+  }
+};

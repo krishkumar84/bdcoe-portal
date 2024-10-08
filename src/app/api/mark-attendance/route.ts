@@ -11,8 +11,8 @@ export async function POST() {
     await ConnectToDB();
   // console.log(req)
   const session = await getServerSession(authOptions)
-  console.log(session)
-   console.log(session)
+  // console.log(session)
+  //  console.log(session)
   if (!session) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

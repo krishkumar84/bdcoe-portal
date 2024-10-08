@@ -6,14 +6,11 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { students } from "@/lib/constants"
 
 interface StudentData {
-  name: string
-  id: string
-  course: string
-  email: string
-  year: string
-  avatar?: string
+  Name: string
+  studentNo : number
 }
 
 interface EditProfilePopupProps {
@@ -31,7 +28,10 @@ export function EditProfilePopup({ studentData, onSave }: EditProfilePopupProps)
     setIsOpen(false)
   }
 
-  const yearOptions = ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"]
+
+  const filterStudent = students.filter((item) => item.studentNo == studentData.studentNo.toString());
+
+  const email = filterStudent[0]?.email;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -48,39 +48,23 @@ export function EditProfilePopup({ studentData, onSave }: EditProfilePopupProps)
             <div className="flex-1">
               <Label htmlFor="name">Name</Label>
               <Input
+              disabled
                 id="name"
-                value={editedData.name}
-                onChange={(e) => setEditedData({ ...editedData, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="flex-1">
-              <Label htmlFor="id">ID</Label>
-              <Input
-                id="id"
-                value={editedData.id}
-                onChange={(e) => setEditedData({ ...editedData, id: e.target.value })}
+                value={studentData.Name}
+                // onChange={(e) => setEditedData({ ...editedData, name: e.target.value })}
                 required
               />
             </div>
           </div>
           <div className="flex flex-col md:flex-row md:space-x-4">
             <div className="flex-1">
-              <Label htmlFor="course">Course</Label>
-              <Input
-                id="course"
-                value={editedData.course}
-                onChange={(e) => setEditedData({ ...editedData, course: e.target.value })}
-                required
-              />
-            </div>
-            <div className="flex-1">
               <Label htmlFor="email">Email</Label>
               <Input
+                disabled
                 id="email"
                 type="email"
-                value={editedData.email}
-                onChange={(e) => setEditedData({ ...editedData, email: e.target.value })}
+                value={email}
+                // onChange={(e) => setEditedData({ ...editedData, email: e.target.value })}
                 required
               />
             </div>
@@ -88,21 +72,14 @@ export function EditProfilePopup({ studentData, onSave }: EditProfilePopupProps)
           <div className="flex flex-col md:flex-row md:space-x-4">
             <div className="flex-1">
               <Label htmlFor="year">Year</Label>
-              <Select
-                value={editedData.year}
-                onValueChange={(value) => setEditedData({ ...editedData, year: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                disabled
+                id="email"
+                type="email"
+                value={"2nd Year"}
+                // onChange={(e) => setEditedData({ ...editedData, email: e.target.value })}
+                required
+              />
             </div>
           </div>
           <DialogFooter>

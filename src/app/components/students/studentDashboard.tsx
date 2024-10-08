@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EditProfilePopup } from "./edit-student-profile"
 import axios from "axios"
-import { showAttendence } from "@/lib/action"
+import { showAttendence, showUserDetail } from "@/lib/action"
+import { useSession } from "next-auth/react"
 
 const initialStudentData = {
     name: "John Doe",
@@ -78,6 +79,14 @@ export default function EnhancedStudentDashboard() {
   const [recordsPerPage, setRecordsPerPage] = useState(10)
   const [attendanceData, setAttendanceData] = useState<{ date: string; status: string }[]>([])
   const [isMounted, setIsMounted] = useState(false)
+  const [userDetail, setUserDetail] = useState<{ Name: string  , studentNo : number}>({
+    Name: "", studentNo : 0
+  })
+  const [windowOpen, setWindowOpen] = useState<boolean | null>(null);
+  
+  const {data : session} = useSession();
+
+  // console.log(session,"wwedwedd")
 
   useEffect(() => {
     setIsMounted(true) 
@@ -108,6 +117,46 @@ export default function EnhancedStudentDashboard() {
     setAttendanceMarked(true)
     
   },[attendanceMarked])
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch('/api/checkStatusAttendance'); // Adjust the API route as necessary
+        const data = await response.json();
+
+        if (response.status === 200) {
+          setWindowOpen(true);
+        } else {
+          setWindowOpen(false);
+          console.error('Failed to fetch status:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching attendance status:', error);
+      }
+    };
+
+    // Poll every second
+    const intervalId = setInterval(fetchStatus, 1000);
+
+    // Clean up the interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+      const getUserDetails = async () => {
+        if (session?.user.studentNo) {
+          const detail = await showUserDetail({ studentNo: session.user.studentNo });
+          // console.log(detail);
+          setUserDetail({
+            Name : detail.userDetail?.Name || "",
+            studentNo : detail.userDetail?.studentNo || 0
+          });
+          console.log(userDetail)
+        }
+      }
+  
+      getUserDetails();
+    },[])
 
 
   useEffect(() => {
@@ -189,27 +238,26 @@ export default function EnhancedStudentDashboard() {
               <Avatar className="h-32 w-32">
                 <AvatarImage
                   src="/placeholder-avatar.jpg"
-                  alt={studentData.name}
+                  alt={userDetail.Name}
                 />
                 <AvatarFallback>
-                  {studentData.name
-                    .split(" ")
+                  {userDetail.Name.split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="text-center">
-                <h2 className="text-2xl font-semibold">{studentData.name}</h2>
-                <p className="text-gray-500">{studentData.id}</p>
-                <p className="text-gray-500">{studentData.course}</p>
-                <p className="text-gray-500">{studentData.year}</p>
-                <p className="text-gray-500">{studentData.email}</p>
+                <h2 className="text-2xl font-semibold">{userDetail.Name}</h2>
+                {/* <p className="text-gray-500">{studentData.id}</p> */}
+                <p className="text-gray-500">{userDetail.studentNo}</p>
+                <p className="text-gray-500">2nd year</p>
+                {/* <p className="text-gray-500">{studentData.email}</p> */}
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-center">
             <EditProfilePopup
-              studentData={studentData}
+              studentData={userDetail}
               onSave={handleProfileUpdate}
             />
           </CardFooter>
@@ -242,7 +290,7 @@ export default function EnhancedStudentDashboard() {
                       </span>
                       <Badge
                         variant={
-                          day.status === "Present" ? "default" : "destructive"
+                          day.status === "present" ? "default" : "destructive"
                         }
                       >
                         {day.status}
@@ -298,181 +346,262 @@ export default function EnhancedStudentDashboard() {
               </CardContent>
             </TabsContent>
             <TabsContent value="projects">
-              <CardHeader>
-                <CardTitle>Projects</CardTitle>
-                <CardDescription>
-                  Manage your projects and track progress
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="new" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="new">New Project</TabsTrigger>
-                    <TabsTrigger value="ongoing">Ongoing Projects</TabsTrigger>
-                    <TabsTrigger value="completed">
-                      Completed Projects
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="new">
-                    <div className="bg-white p-4 rounded-lg shadow mt-4">
-                      <h3 className="font-semibold text-lg mb-4">
-                        Submit New Project
-                      </h3>
-                      <form
-                        onSubmit={handleProjectSubmit}
-                        className="space-y-4"
-                      >
-                        <div>
-                          <Label htmlFor="projectName">Project Name</Label>
-                          <Input
-                            id="projectName"
-                            value={newProject.name}
-                            onChange={(e) =>
-                              setNewProject({
-                                ...newProject,
-                                name: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="projectDescription">
-                            Description
-                          </Label>
-                          <Textarea
-                            id="projectDescription"
-                            value={newProject.description}
-                            onChange={(e) =>
-                              setNewProject({
-                                ...newProject,
-                                description: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="projectDueDate">Due Date</Label>
-                          <Input
-                            id="projectDueDate"
-                            type="date"
-                            value={newProject.dueDate}
-                            onChange={(e) =>
-                              setNewProject({
-                                ...newProject,
-                                dueDate: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <Button type="submit">Submit Project</Button>
-                      </form>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="ongoing">
-                    <div className="space-y-4 mt-4">
-                      {projects
-                        .filter((project) => project.status !== "Completed")
-                        .map((project) => (
-                          <Card key={project.id}>
-                            <CardHeader>
-                              <CardTitle>{project.name}</CardTitle>
-                              <CardDescription>
-                                {project.description}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <p>
-                                <strong>Due Date:</strong> {project.dueDate}
-                              </p>
-                              <p>
-                                <strong>Status:</strong> {project.status}
-                              </p>
-                              <div className="mt-4">
-                                <h4 className="font-semibold mb-2">Updates</h4>
-                                {project.updates.map((update, index) => (
-                                  <div
-                                    key={index}
-                                    className="bg-gray-100 p-2 rounded mb-2"
-                                  >
-                                    <p className="text-sm text-gray-600">
-                                      {update.date}
-                                    </p>
-                                    <p>{update.comment}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </CardContent>
-                            <CardFooter>
-                              <form
-                                onSubmit={handleProjectUpdate}
-                                className="w-full"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <Input
-                                    value={newUpdate}
-                                    onChange={(e) =>
-                                      setNewUpdate(e.target.value)
-                                    }
-                                    placeholder="Add an update..."
-                                  />
-                                  <Button
-                                    type="submit"
-                                    onClick={() => setSelectedProject(project)}
-                                  >
-                                    Update
-                                  </Button>
+              <div className="relative">
+                {/* Overlay Screen for Closed Message */}
+                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                  <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-10 w-10 text-blue-500 mb-4 mx-auto"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M12 8v4m0 4h.01M4 12h16M4 12a9.963 9.963 0 00.854-4.636C5.052 5.516 8.417 2 12 2s6.948 3.516 7.146 5.364A9.963 9.963 0 0016 12h-4z"
+                      />
+                    </svg>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Section Unavailable
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                      We're sorry, but this section is currently closed. Please
+                      check back later.
+                    </p>
+                    <a
+                      href="https://bdcoe.co.in/"
+                      target="_blank"
+                      className="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                      onClick={() => console.log("More Information")}
+                    >
+                      More Information
+                    </a>
+                  </div>
+                </div>
+
+                <CardHeader>
+                  <CardTitle>Projects</CardTitle>
+                  <CardDescription>
+                    Manage your projects and track progress
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="new" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="new">New Project</TabsTrigger>
+                      <TabsTrigger value="ongoing">
+                        Ongoing Projects
+                      </TabsTrigger>
+                      <TabsTrigger value="completed">
+                        Completed Projects
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="new">
+                      <div className="bg-white p-4 rounded-lg shadow mt-4">
+                        <h3 className="font-semibold text-lg mb-4">
+                          Submit New Project
+                        </h3>
+                        <form
+                          onSubmit={handleProjectSubmit}
+                          className="space-y-4"
+                        >
+                          <div>
+                            <Label htmlFor="projectName">Project Name</Label>
+                            <Input
+                              id="projectName"
+                              value={newProject.name}
+                              onChange={(e) =>
+                                setNewProject({
+                                  ...newProject,
+                                  name: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="projectDescription">
+                              Description
+                            </Label>
+                            <Textarea
+                              id="projectDescription"
+                              value={newProject.description}
+                              onChange={(e) =>
+                                setNewProject({
+                                  ...newProject,
+                                  description: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="projectDueDate">Due Date</Label>
+                            <Input
+                              id="projectDueDate"
+                              type="date"
+                              value={newProject.dueDate}
+                              onChange={(e) =>
+                                setNewProject({
+                                  ...newProject,
+                                  dueDate: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                          </div>
+                          <Button type="submit">Submit Project</Button>
+                        </form>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="ongoing">
+                      <div className="space-y-4 mt-4">
+                        {projects
+                          .filter((project) => project.status !== "Completed")
+                          .map((project) => (
+                            <Card key={project.id}>
+                              <CardHeader>
+                                <CardTitle>{project.name}</CardTitle>
+                                <CardDescription>
+                                  {project.description}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <p>
+                                  <strong>Due Date:</strong> {project.dueDate}
+                                </p>
+                                <p>
+                                  <strong>Status:</strong> {project.status}
+                                </p>
+                                <div className="mt-4">
+                                  <h4 className="font-semibold mb-2">
+                                    Updates
+                                  </h4>
+                                  {project.updates.map((update, index) => (
+                                    <div
+                                      key={index}
+                                      className="bg-gray-100 p-2 rounded mb-2"
+                                    >
+                                      <p className="text-sm text-gray-600">
+                                        {update.date}
+                                      </p>
+                                      <p>{update.comment}</p>
+                                    </div>
+                                  ))}
                                 </div>
-                              </form>
-                            </CardFooter>
-                          </Card>
-                        ))}
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="completed">
-                    <div className="space-y-4 mt-4">
-                      {projects
-                        .filter((project) => project.status === "Completed")
-                        .map((project) => (
-                          <Card key={project.id}>
-                            <CardHeader>
-                              <CardTitle>{project.name}</CardTitle>
-                              <CardDescription>
-                                {project.description}
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <p>
-                                <strong>Due Date:</strong> {project.dueDate}
-                              </p>
-                              <p>
-                                <strong>Status:</strong> {project.status}
-                              </p>
-                              <div className="mt-4">
-                                <h4 className="font-semibold mb-2">Updates</h4>
-                                {project.updates.map((update, index) => (
-                                  <div
-                                    key={index}
-                                    className="bg-gray-100 p-2 rounded mb-2"
-                                  >
-                                    <p className="text-sm text-gray-600">
-                                      {update.date}
-                                    </p>
-                                    <p>{update.comment}</p>
+                              </CardContent>
+                              <CardFooter>
+                                <form
+                                  onSubmit={handleProjectUpdate}
+                                  className="w-full"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      value={newUpdate}
+                                      onChange={(e) =>
+                                        setNewUpdate(e.target.value)
+                                      }
+                                      placeholder="Add an update..."
+                                    />
+                                    <Button
+                                      type="submit"
+                                      onClick={() =>
+                                        setSelectedProject(project)
+                                      }
+                                    >
+                                      Update
+                                    </Button>
                                   </div>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
+                                </form>
+                              </CardFooter>
+                            </Card>
+                          ))}
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="completed">
+                      <div className="space-y-4 mt-4">
+                        {projects
+                          .filter((project) => project.status === "Completed")
+                          .map((project) => (
+                            <Card key={project.id}>
+                              <CardHeader>
+                                <CardTitle>{project.name}</CardTitle>
+                                <CardDescription>
+                                  {project.description}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <p>
+                                  <strong>Due Date:</strong> {project.dueDate}
+                                </p>
+                                <p>
+                                  <strong>Status:</strong> {project.status}
+                                </p>
+                                <div className="mt-4">
+                                  <h4 className="font-semibold mb-2">
+                                    Updates
+                                  </h4>
+                                  {project.updates.map((update, index) => (
+                                    <div
+                                      key={index}
+                                      className="bg-gray-100 p-2 rounded mb-2"
+                                    >
+                                      <p className="text-sm text-gray-600">
+                                        {update.date}
+                                      </p>
+                                      <p>{update.comment}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </div>
             </TabsContent>
             <TabsContent value="stats">
+              <div className="relative">
+
+              
+            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                  <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-10 w-10 text-blue-500 mb-4 mx-auto"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M12 8v4m0 4h.01M4 12h16M4 12a9.963 9.963 0 00.854-4.636C5.052 5.516 8.417 2 12 2s6.948 3.516 7.146 5.364A9.963 9.963 0 0016 12h-4z"
+                      />
+                    </svg>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Section Unavailable
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                      We're sorry, but this section is currently closed. Please
+                      check back later.
+                    </p>
+                    <a
+                      href="https://bdcoe.co.in/"
+                      target="_blank"
+                      className="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                      onClick={() => console.log("More Information")}
+                    >
+                      More Information
+                    </a>
+                  </div>
+                </div>
               <CardHeader>
                 <CardTitle>Attendance Statistics</CardTitle>
                 <CardDescription>
@@ -508,6 +637,7 @@ export default function EnhancedStudentDashboard() {
                   </div>
                 </div>
               </CardContent>
+              </div>
             </TabsContent>
           </Tabs>
         </Card>
@@ -516,16 +646,14 @@ export default function EnhancedStudentDashboard() {
           <CardHeader>
             <CardTitle>Mark Today's Attendance</CardTitle>
             <CardDescription>
-        {isMounted && currentTime ? (
-          new Date(currentTime).toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
-        ) : (
-          'Loading...' 
-        )}
-      </CardDescription>
+              {isMounted && currentTime
+                ? new Date(currentTime).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "Loading..."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center justify-between bg-white p-6 rounded-lg shadow">
@@ -533,7 +661,13 @@ export default function EnhancedStudentDashboard() {
                 <Clock className="h-8 w-8 text-blue-500" />
                 <div>
                   <p className="text-lg font-semibold">Current Time</p>
-                  {isMounted ? <p className="text-2xl">{format(currentTime, "HH:mm:ss")}</p> : <p>Loading...</p>}
+                  {isMounted ? (
+                    <p className="text-2xl">
+                      {format(currentTime, "HH:mm:ss")}
+                    </p>
+                  ) : (
+                    <p>Loading...</p>
+                  )}
                 </div>
               </div>
               {isAttendanceWindowOpen ? (
@@ -544,25 +678,28 @@ export default function EnhancedStudentDashboard() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <Button
-                      onClick={markAttendance}
-                      size="lg"
-                      className="px-8 mb-2"
-                    >
-                      Mark Attendance
-                    </Button>
-                    <p className="text-sm text-gray-500">
+                    {windowOpen ? (
+                      <Button
+                        onClick={markAttendance}
+                        // disabled={!isPresent}
+                        size="lg"
+                        className="px-8 mb-2"
+                      >
+                        Mark Attendance
+                      </Button>
+                    ) : (
+                      <div className="text-red-600 font-semibold flex items-center">
+                        <AlertTriangle className="mr-2" />
+                        Attendance Window Closed
+                      </div>
+                    )}
+                    {/* <p className="text-sm text-gray-500">
                       Time left: {timeLeftInMinutes} minute
                       {timeLeftInMinutes !== 1 ? "s" : ""}
-                    </p>
+                    </p> */}
                   </div>
                 )
-              ) : (
-                <div className="text-red-600 font-semibold flex items-center">
-                  <AlertTriangle className="mr-2" />
-                  Attendance Window Closed
-                </div>
-              )}
+              ) : null}
             </div>
           </CardContent>
         </Card>

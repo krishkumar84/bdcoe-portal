@@ -17,11 +17,17 @@ export async function GET(req: NextRequest) {
     const userId = session.user.studentNo;
 
     // Find the freeze attendance status for the user
-    const freezeAttendance = await FreezeAttendances.findOne({ userId });
+    const freezeAttendances = await FreezeAttendances.find({});
 
-    if (freezeAttendance.windowOpen == false) {
+    if (!freezeAttendances || freezeAttendances.length === 0) {
+      return NextResponse.json({ error: 'No attendance records found' }, { status: 404 });
+    }
+
+    // Check if the window is open
+    if (freezeAttendances.some(record => record.windowOpen === false)) {
       return NextResponse.json({ error: 'Attendance record not found' }, { status: 404 });
     }
+
 
     // Return the windowOpen status
     return NextResponse.json({ status : 200});

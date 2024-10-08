@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EditProfilePopup } from "./edit-student-profile"
 import axios from "axios"
 import { showAttendence, showUserDetail } from "@/lib/action"
-import { useSession } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 
 const initialStudentData = {
     name: "John Doe",
@@ -255,14 +255,14 @@ export default function EnhancedStudentDashboard() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center">
+          <CardFooter className="flex justify-center gap-4">
             <EditProfilePopup
               studentData={userDetail}
               onSave={handleProfileUpdate}
             />
+            <Button className="bg-red-500 hover:bg-red-600" onClick={() => signOut({ callbackUrl: '/signin', redirect:true })}>Signout</Button>
           </CardFooter>
         </Card>
-
         <Card className="lg:col-span-2">
           <Tabs defaultValue="attendance" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -349,7 +349,7 @@ export default function EnhancedStudentDashboard() {
               <div className="relative">
                 {/* Overlay Screen for Closed Message */}
                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-                  <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
+                  <div className="bg-white p-8 w-64 md:w-full rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-10 w-10 text-blue-500 mb-4 mx-auto"
@@ -570,7 +570,7 @@ export default function EnhancedStudentDashboard() {
 
               
             <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-                  <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
+                  <div className="bg-white p-8 w-72 md:w-full rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-10 w-10 text-blue-500 mb-4 mx-auto"

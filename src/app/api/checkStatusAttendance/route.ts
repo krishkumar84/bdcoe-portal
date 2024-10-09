@@ -10,11 +10,12 @@ export async function GET(req: NextRequest) {
 
     // Get the user's session
     const session = await getServerSession(authOptions);
+
     if (!session) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.studentNo;
+    // const userId = session.user.studentNo;
 
     // Find the freeze attendance status for the user
     const freezeAttendances = await FreezeAttendances.find({});

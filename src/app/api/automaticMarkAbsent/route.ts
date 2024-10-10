@@ -25,31 +25,38 @@ export async function POST() {
       }
     }, { userId: 1, status: 1 }).lean();
 
+    console.log(todayAttendance);
+
     // Create sets for present and absent users
     const presentUserIdSet = new Set(todayAttendance.filter(record => record.status === 'present').map(record => record.userId));
     const absentUserIdSet = new Set(todayAttendance.filter(record => record.status === 'absent').map(record => record.userId));
-
+    console.log(presentUserIdSet);
+    console.log(absentUserIdSet);
     // 4. Identify users who haven't been marked for attendance today
     const unmarkedUsers = allUsers.filter(user => !presentUserIdSet.has(user.studentNo) && !absentUserIdSet.has(user.studentNo));
-
+    console.log(unmarkedUsers);
     // 5. Mark unmarked users as absent
+    // const now = new Date();
+    // const attDate = new Date(now); 
     let newAbsenteesCount = 0;
+    let index=1;
     for (const user of unmarkedUsers) {
-      const attendanceDate = todayStart;
+      const attendanceDate = new Date(todayStart);
+      attendanceDate.setMilliseconds(todayStart.getMilliseconds() + index * 10);
+      // const attendanceDate = todayStart;
       const now = new Date();
-
-      const attendance = new Attendance({
-        userId: user.studentNo,
-        date: attendanceDate,
-        markedAt: now,
-        status: 'absent',
-        verified: false,
-        flagged: false
-      });
-
+        const attendance = new Attendance({
+          userId: user.studentNo,
+          date: attendanceDate,
+          markedAt: now,
+          status: 'absent',
+          verified: false,
+          flagged: false
+        });
+        index++;
       await attendance.save();
       newAbsenteesCount++;
-    }
+  }
 
     return NextResponse.json(`Marked ${newAbsenteesCount} new users as absent.`);
   } catch (error: unknown) {

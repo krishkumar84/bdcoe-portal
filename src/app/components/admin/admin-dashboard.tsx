@@ -19,6 +19,9 @@ import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 import { toast } from "sonner"
 import StartAttendance from "./start-attendance"
 import FreezeAttendance from "./freeze-attendance"
+import axios from "axios"
+import FlagUser from "./flag-user"
+import { showAllUserDetails } from "@/lib/action"
 
 export default function AttendanceDashboard() {
   const [apiData, setApiData] = useState<any>(null)
@@ -30,6 +33,7 @@ export default function AttendanceDashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [attendance, setAttendance] = useState<{[key: string]: boolean}>({})
   const [activeTab, setActiveTab] = useState("overview")
+  const [allUser, setAllUser] = useState<Object[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,6 +54,16 @@ export default function AttendanceDashboard() {
 
     fetchData()
   }, [])
+
+  useEffect(() => {
+      const fetchAllUser = async () => {
+        const allUsers = await showAllUserDetails() as Object[];
+        setAllUser(allUsers)
+        // console.log(allUser);
+      }
+      fetchAllUser();
+  },[])
+  
 
   const itemsPerPage = 10
   const filteredStudents = students.filter(student =>
@@ -87,6 +101,7 @@ export default function AttendanceDashboard() {
   }
 
   const handleViewStats = (student: any) => {
+    console.log(student)
     setSelectedStudentId(student._id)
     setSelectedStudentName(student.Name)
     setSelectedStudentNo(student.studentNo)
@@ -206,6 +221,7 @@ export default function AttendanceDashboard() {
     </div>
   )
 
+
   const StudentStatistics = () => {
     if (!selectedStudentId || !selectedStudentName) {
       return <p className="text-center text-gray-500">Select a student to view their statistics.</p>
@@ -248,6 +264,9 @@ export default function AttendanceDashboard() {
               </div>
             </div>
           </CardContent>
+        </Card>
+        <Card>
+          <FlagUser allUser= {selectedStudent} />
         </Card>
         <Card>
           <CardHeader>

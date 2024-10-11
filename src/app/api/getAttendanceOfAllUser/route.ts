@@ -17,6 +17,7 @@ export async function GET() {
   try {
     // 1. Total number of students
     const totalStudents = await User.countDocuments();
+    const allUser = await User.find({});
 
     // 2. Today's date and the beginning of today (midnight)
     const todayStart = new Date();
@@ -109,6 +110,7 @@ export async function GET() {
         presentToday,
         averageAttendanceRate,
         userAttendance,
+        allUser
       },
       { status: 200 }
     );

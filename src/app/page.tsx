@@ -8,7 +8,7 @@ export default function Home() {
 
   const {data : session} = useSession();
 
-  console.log(session,"wwedwedd")
+  // console.log(session,"wwedwedd")
 
   return (
     <div className="">

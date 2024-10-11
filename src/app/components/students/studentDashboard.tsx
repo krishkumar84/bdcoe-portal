@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { CalendarDays, User, CheckCircle, Book, BarChart2, Clock, AlertTriangle, Upload, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarDays, User, CheckCircle, Book, BarChart2, Clock, AlertTriangle, Upload, MessageSquare, ChevronLeft, ChevronRight, Flag } from "lucide-react"
 import { format, parseISO, isToday, differenceInMinutes } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,8 +16,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EditProfilePopup } from "./edit-student-profile"
 import axios from "axios"
-import { showAttendence, showUserDetail } from "@/lib/action"
+import { saveNewProject, showAttendence, showFlaggedUserDetail, showFlaggedUserDetailStudent, showUserDetail } from "@/lib/action"
 import { signOut, useSession } from "next-auth/react"
+
+
+interface userFlagCount {
+  flagCount : number | null
+}
 
 const initialStudentData = {
     name: "John Doe",
@@ -79,12 +84,14 @@ export default function EnhancedStudentDashboard() {
   const [recordsPerPage, setRecordsPerPage] = useState(10)
   const [attendanceData, setAttendanceData] = useState<{ date: string; status: string }[]>([])
   const [isMounted, setIsMounted] = useState(false)
-  const [userDetail, setUserDetail] = useState<{ Name: string  , studentNo : number}>({
-    Name: "", studentNo : 0
+  const [userDetail, setUserDetail] = useState<{ Name: string  , studentNo : number , _id : string}>({
+    Name: "", studentNo : 0 , _id : ""
   })
   const [windowOpen, setWindowOpen] = useState<boolean | null>(null);
+  const [fetchExistingFlag, setfetchExistingFlag] = useState<number | null>(0)
   
   const {data : session} = useSession();
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // console.log(session,"wwedwedd")
 
@@ -111,7 +118,7 @@ export default function EnhancedStudentDashboard() {
     
     await axios.post("/api/mark-attendance")
     .then((data) => {
-      console.log(data)
+      // console.log(data)
     })
     .catch((err) => console.log(err))
     setAttendanceMarked(true)
@@ -149,9 +156,10 @@ export default function EnhancedStudentDashboard() {
           // console.log(detail);
           setUserDetail({
             Name : detail.userDetail?.Name || "",
-            studentNo : detail.userDetail?.studentNo || 0
+            studentNo : detail.userDetail?.studentNo || 0,
+            _id : detail.userDetail._id
           });
-          console.log(userDetail)
+          // console.log(userDetail,"harsh")
         }
       }
   
@@ -184,13 +192,35 @@ export default function EnhancedStudentDashboard() {
   },[])
 
   const attendancePercentage = (studentData.attendedClasses / studentData.totalClasses) * 100
-  const timeLeftInMinutes = Math.max(0, differenceInMinutes(attendanceWindowEnd, currentTime))
+  // const timeLeftInMinutes = Math.max(0, differenceInMinutes(attendanceWindowEnd, currentTime))
 
-  const handleProjectSubmit = (e:any) => {
-    e.preventDefault()
-    setProjects([...projects, { ...newProject, id: projects.length + 1, status: "Not Started", updates: [] }])
-    setNewProject({ name: "", description: "", dueDate: "" })
-  }
+  
+  const handleProjectSubmit = (e: any) => {
+    e.preventDefault();
+    setIsSubmitted(true);
+    console.log(isSubmitted)
+  };
+  
+  useEffect(() => {
+    if (isSubmitted) {
+      const submitProject = async () => {
+
+        const task = await saveNewProject(newProject.name , newProject.description , newProject.dueDate)
+        // console.log(task);
+        setIsSubmitted(false); 
+      } 
+      submitProject();
+    }
+  }, [isSubmitted]);
+
+
+  // const handleProjectSubmit = (e:any) => {
+  //   e.preventDefault()
+  //   // setProjects([...projects, { ...newProject, id: projects.length + 1, status: "Not Started", updates: [] }])
+  //   // setNewProject({ name: "", description: "", dueDate: "" })
+
+
+  // }
 
   const handleProjectUpdate = (e:any) => {
     e.preventDefault()
@@ -220,6 +250,16 @@ export default function EnhancedStudentDashboard() {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
+  useEffect(() => {
+    const showFlaguser = async () => {
+      // console.log(userDetail._id,"kakak")
+      const user = await showFlaggedUserDetailStudent(session?.user.studentNo) as userFlagCount | null;
+          // console.log(user[0]?.flagCount),"kjhkkn";
+          setfetchExistingFlag(user?.flagCount ?? 0)
+    }
+    showFlaguser();
+  },[])
   
 
   return (
@@ -255,6 +295,20 @@ export default function EnhancedStudentDashboard() {
               </div>
             </div>
           </CardContent>
+          <Card className="w-1/2 mb-7 mx-auto">
+      <CardHeader>
+        <CardTitle className="text-center">Flag</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Flag className="w-6 h-6 text-yellow-500" />
+              <span className="text-3xl font-bold">{fetchExistingFlag}</span>
+          </div>
+          
+        </div>
+      </CardContent>
+    </Card>
           <CardFooter className="flex justify-center gap-4">
             <EditProfilePopup
               studentData={userDetail}

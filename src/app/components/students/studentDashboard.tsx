@@ -143,7 +143,7 @@ export default function EnhancedStudentDashboard() {
     };
 
     // Poll every second
-    const intervalId = setInterval(fetchStatus, 1000);
+    const intervalId = setInterval(fetchStatus, 10000000);
 
     // Clean up the interval on component unmount
     return () => clearInterval(intervalId);

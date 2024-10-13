@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback,useMemo } from "react"
 import { CalendarDays, User, CheckCircle, Book, BarChart2, Clock, AlertTriangle, Upload, MessageSquare, ChevronLeft, ChevronRight, Flag } from "lucide-react"
 import { format, parseISO, isToday, differenceInMinutes } from "date-fns"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,7 @@ import { EditProfilePopup } from "./edit-student-profile"
 import axios from "axios"
 import { saveNewProject, showAttendence, showFlaggedUserDetail, showFlaggedUserDetailStudent, showUserDetail } from "@/lib/action"
 import { signOut, useSession } from "next-auth/react"
+import { getSocket } from "@/config/socket";
 
 
 interface userFlagCount {
@@ -92,6 +93,10 @@ export default function EnhancedStudentDashboard() {
   
   const {data : session} = useSession();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  
+  const socket = useMemo(() => getSocket().connect(), []);
 
   // console.log(session,"wwedwedd")
 
@@ -113,7 +118,20 @@ export default function EnhancedStudentDashboard() {
     return () => clearInterval(timer)
   }, [attendanceWindowEnd , isMounted])
 
-  
+  useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.on("toggleHello", (showHello: boolean) => {
+      setIsVisible(showHello);
+    });
+
+    return () => {
+      socket.off("toggleHello");
+    };
+  }, [socket]);
+
   const markAttendance = useCallback( async () => {
     
     await axios.post("/api/mark-attendance")
@@ -125,29 +143,29 @@ export default function EnhancedStudentDashboard() {
     
   },[attendanceMarked])
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const response = await fetch('/api/checkStatusAttendance'); // Adjust the API route as necessary
-        const data = await response.json();
+  // useEffect(() => {
+  //   const fetchStatus = async () => {
+  //     try {
+  //       const response = await fetch('/api/checkStatusAttendance'); // Adjust the API route as necessary
+  //       const data = await response.json();
 
-        if (response.status === 200) {
-          setWindowOpen(true);
-        } else {
-          setWindowOpen(false);
-          console.error('Failed to fetch status:', data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching attendance status:', error);
-      }
-    };
+  //       if (response.status === 200) {
+  //         setWindowOpen(true);
+  //       } else {
+  //         setWindowOpen(false);
+  //         console.error('Failed to fetch status:', data.error);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching attendance status:', error);
+  //     }
+  //   };
 
-    // Poll every second
-    const intervalId = setInterval(fetchStatus, 10000000);
+  //   // Poll every second
+  //   const intervalId = setInterval(fetchStatus, 10000000);
 
-    // Clean up the interval on component unmount
-    return () => clearInterval(intervalId);
-  }, []);
+  //   // Clean up the interval on component unmount
+  //   return () => clearInterval(intervalId);
+  // }, []);
 
   useEffect(() => {
       const getUserDetails = async () => {
@@ -155,9 +173,9 @@ export default function EnhancedStudentDashboard() {
           const detail = await showUserDetail({ studentNo: session.user.studentNo });
           // console.log(detail);
           setUserDetail({
-            Name : detail.userDetail?.Name || "",
-            studentNo : detail.userDetail?.studentNo || 0,
-            _id : detail.userDetail._id
+            Name : Array.isArray(detail.userDetail) ? "" : detail.userDetail?.Name || "",
+            studentNo : Array.isArray(detail.userDetail) ? 0 : detail.userDetail?.studentNo || 0,
+            _id : detail.userDetail?._id || ""
           });
           // console.log(userDetail,"harsh")
         }
@@ -296,25 +314,33 @@ export default function EnhancedStudentDashboard() {
             </div>
           </CardContent>
           <Card className="w-1/2 mb-7 mx-auto">
-      <CardHeader>
-        <CardTitle className="text-center">Flag</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Flag className="w-6 h-6 text-yellow-500" />
-              <span className="text-3xl font-bold">{fetchExistingFlag}</span>
-          </div>
-          
-        </div>
-      </CardContent>
-    </Card>
+            <CardHeader>
+              <CardTitle className="text-center">Flag</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Flag className="w-6 h-6 text-yellow-500" />
+                  <span className="text-3xl font-bold">
+                    {fetchExistingFlag}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           <CardFooter className="flex justify-center gap-4">
             <EditProfilePopup
               studentData={userDetail}
               onSave={handleProfileUpdate}
             />
-            <Button className="bg-red-500 hover:bg-red-600" onClick={() => signOut({ callbackUrl: '/signin', redirect:true })}>Signout</Button>
+            <Button
+              className="bg-red-500 hover:bg-red-600"
+              onClick={() =>
+                signOut({ callbackUrl: "/signin", redirect: true })
+              }
+            >
+              Signout
+            </Button>
           </CardFooter>
         </Card>
         <Card className="lg:col-span-2">
@@ -621,9 +647,7 @@ export default function EnhancedStudentDashboard() {
             </TabsContent>
             <TabsContent value="stats">
               <div className="relative">
-
-              
-            <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
                   <div className="bg-white p-8 w-72 md:w-full rounded-lg shadow-lg max-w-md text-center transform transition-transform duration-300 scale-105 hover:scale-100">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -656,41 +680,43 @@ export default function EnhancedStudentDashboard() {
                     </a>
                   </div>
                 </div>
-              <CardHeader>
-                <CardTitle>Attendance Statistics</CardTitle>
-                <CardDescription>
-                  Your overall attendance performance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">
-                      Overall Attendance
-                    </span>
-                    <span className="text-sm font-medium">
-                      {attendancePercentage.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress value={attendancePercentage} className="w-full" />
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div className="bg-white p-4 rounded-lg shadow text-center">
-                      <Book className="mx-auto h-6 w-6 text-blue-500" />
-                      <p className="mt-2 font-semibold">
-                        {studentData.totalClasses}
-                      </p>
-                      <p className="text-sm text-gray-500">Total Classes</p>
+                <CardHeader>
+                  <CardTitle>Attendance Statistics</CardTitle>
+                  <CardDescription>
+                    Your overall attendance performance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">
+                        Overall Attendance
+                      </span>
+                      <span className="text-sm font-medium">
+                        {attendancePercentage.toFixed(1)}%
+                      </span>
                     </div>
-                    <div className="bg-white p-4 rounded-lg shadow text-center">
-                      <CheckCircle className="mx-auto h-6 w-6 text-green-500" />
-                      <p className="mt-2 font-semibold">
-                        {studentData.attendedClasses}
-                      </p>
-                      <p className="text-sm text-gray-500">Classes Attended</p>
+                    <Progress value={attendancePercentage} className="w-full" />
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="bg-white p-4 rounded-lg shadow text-center">
+                        <Book className="mx-auto h-6 w-6 text-blue-500" />
+                        <p className="mt-2 font-semibold">
+                          {studentData.totalClasses}
+                        </p>
+                        <p className="text-sm text-gray-500">Total Classes</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow text-center">
+                        <CheckCircle className="mx-auto h-6 w-6 text-green-500" />
+                        <p className="mt-2 font-semibold">
+                          {studentData.attendedClasses}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Classes Attended
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
               </div>
             </TabsContent>
           </Tabs>
@@ -732,10 +758,9 @@ export default function EnhancedStudentDashboard() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    {windowOpen ? (
+                    {isVisible ? ( // Now controlled by socket state
                       <Button
                         onClick={markAttendance}
-                        // disabled={!isPresent}
                         size="lg"
                         className="px-8 mb-2"
                       >
@@ -747,10 +772,6 @@ export default function EnhancedStudentDashboard() {
                         Attendance Window Closed
                       </div>
                     )}
-                    {/* <p className="text-sm text-gray-500">
-                      Time left: {timeLeftInMinutes} minute
-                      {timeLeftInMinutes !== 1 ? "s" : ""}
-                    </p> */}
                   </div>
                 )
               ) : null}

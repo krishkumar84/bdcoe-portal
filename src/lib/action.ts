@@ -44,7 +44,7 @@ export const showUserDetail = async ({ studentNo }: { studentNo: string }) => {
     
     await ConnectToDB();
 
-    const userDetail = await User.findOne({ studentNo })
+    const userDetail = await User.findOne({ studentNo }).lean();
 
     if (!userDetail) {
       return { message: 'User not found', status: 404 };

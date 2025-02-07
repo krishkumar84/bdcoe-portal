@@ -1,37 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Trainee Portal - 2nd Year Probation Period
 
-## Getting Started
+This is a web application developed for managing the probation period of 2nd-year trainees. The platform allows trainees to track their attendance, submit individual and group projects, view their attendance statistics, and interact with an admin dashboard. The application is built using Next.js, TypeScript, and is managed with pnpm for efficient package management.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Trainee Attendance Tracking**: 
+  - Trainees can mark their attendance within a specified time window. 
+  - Admin can control the opening and closing of attendance windows.
+  - Attendance statistics and history are viewable to trainees.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Project Submission**:
+  - Trainees can submit projects both individually and in groups.
+  - Admins can view and manage project submissions.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Admin Dashboard**:
+  - Admins have control over attendance windows.
+  - Ability to flag students for issues such as incorrect attendance or rule violations.
+  - View and manage project submissions from all trainees.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Attendance Window Control**: 
+  - Admin can open and close the attendance window, ensuring that trainees only mark their attendance within a set time period.
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Frontend**: Next.js, TypeScript
+- **Backend**: Server Actions
+- **Package Manager**: pnpm (for efficient package management)
+- **ShadCN**: Used for UI components to create a sleek, modern design.
+- **Uploadcare**: Integrated for media management, enabling trainees to upload and manage images and files for project submissions.
+- **RateLimiter**: Used for rate-limiting, ensuring fair use and protecting the application from abuse, particularly for attendance marking and project submissions.
+- 
+## 🚀 some snapshots 
+![App Demo](https://ucarecdn.com/c3144aad-5afb-4bc1-94c0-3463f47e01bc/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+![App Demo](https://ucarecdn.com/0e1b6abd-23f4-4cd1-bc33-c7d78822913c/)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Prerequisites
 
-## Deploy on Vercel
+Make sure you have the following installed:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Node.js](https://nodejs.org/en/) (v21 or later)
+- [pnpm](https://pnpm.io/) (v9 or later)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# bdcoe-portal
+## Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/trainee-portal.git
+   cd trainee-portal
+
+2. **Install the dependencies**:
+   ```bash
+    pnpm install
+ 
+3. **Run the project**:
+   ```bash
+   pnpm run dev
